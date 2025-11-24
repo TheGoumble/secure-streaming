@@ -1,6 +1,3 @@
-import logo from './logo.svg';
-import './App.css';
-import VideoStreamer from './VideoStreamer';
 import AppStreamerViewer from './AppStreamerViewer';
 
 function App() {
