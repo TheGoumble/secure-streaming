@@ -1,237 +1,228 @@
 # Secure Streaming Platform — CIS 4634 Final Project
 
-This project is our secure streaming prototype for **CIS 4634-001**.  
+This project is a secure streaming prototype for **CIS 4634**.  
 It demonstrates a **hybrid cryptographic architecture** combining:
 
 - **React Frontend (Create React App)**
 - **Java Spring Boot AES Key Server**
 - **AES-256-GCM encryption/decryption in the browser (WebCrypto)**
-- **(Future) dedicated WebSocket relay** that only transports encrypted frames
 
 The core idea:
 
-**The backend manages session keys.  
+**The backend manages AES session keys.  
 The browser encrypts and decrypts all sensitive data.  
-Any relay only sees ciphertext — never plaintext.**
+The server never processes plaintext video or chat messages.**
 
 ---
 
-## 🔐 Features
+# Features
 
-### Frontend (React + WebCrypto)
+## Frontend (React + WebCrypto)
 
 - Login screen  
-- Host or Viewer selection  
+- Host or Viewer role selection  
 - Create or join a Session ID  
 - Fetch AES-256-GCM key from backend  
-- Import AES key into WebCrypto API  
-- Encrypt chat/stream metadata locally with AES-GCM  
-- Send ciphertext to the backend/relay  
-- Decrypt messages on the receiver side  
-- Event log to visualize each step in the crypto pipeline  
+- Import AES key into WebCrypto  
+- Encrypt messages locally before sending  
+- Decrypt messages locally when receiving  
+- Event log showing each crypto step  
 
-### Backend (Java Spring Boot AES Key Server)
+## Backend (Java Spring Boot AES Key Server)
 
-- Exposes REST endpoints for:
-  - `POST /api/session` → Host creates or receives an AES session key  
-  - `POST /api/join` → Viewer joins an existing session and receives the same key  
-- Keys are stored per session (in memory) and returned as Base64 (`aesKeyB64`)  
-- Designed so the backend never handles decrypted video/chat content — it only issues keys and receives ciphertext
+- Runs at: **http://localhost:8084**
+- Manages per-session AES-256-GCM keys
+- Exposes REST endpoints:
+  - `POST /api/session` → Create or fetch session key (Host)
+  - `POST /api/join` → Retrieve existing session key (Viewer)
+- Returns keys in Base64 (`aesKeyB64`)
+- Stores keys in memory only
+- No plaintext video/chat content ever touches the backend
 
-> **Backend port:** The Spring Boot server is configured to run on  
-> `http://localhost:8081` (see `backend/src/main/resources/application.properties`).
+### Backend configuration (`application.properties`):
 
-### Hybrid Crypto Architecture
-
-- **AES-256-GCM** used for all symmetric encryption  
-- **Java backend** manages session keys and exposes REST APIs  
-- **Browser frontend** performs all encryption/decryption via **WebCrypto**  
-- **WebSocket relay** (future C++/Node component) will forward only ciphertext  
-- Goal: End-to-end confidentiality with minimum trusted surface
+```
+server.port=8084
+spring.application.name=Secure_Stream
+spring.websocket.messages.max-size=2097152
+spring.websocket.buffer-size=2097152
+```
 
 ---
 
-## 📁 Project Structure
+# Project Structure
 
 ```
 secure-streaming/
 │
-├── backend/                     # Java Spring Boot AES key server
-│   ├── pom.xml                  # Maven project descriptor
-│   └── src/
-│       └── main/
-│           ├── java/
-│           │   ├── config/      # Security / CORS / app config
-│           │   ├── controller/  # REST controllers (session, join, etc.)
-│           │   ├── edu/         # Project base package
-│           │   ├── security/    # Security helpers
-│           │   └── service/     # AES key + session management
-│           └── resources/
-│               └── application.properties  # Server + app configuration
+├── backend/                     # Spring Boot AES Key Server
+│   ├── pom.xml
+│   └── src/main/
+│       ├── java/
+│       │   ├── config/
+│       │   ├── controller/      # /api/session, /api/join
+│       │   ├── security/
+│       │   └── service/         # AES key generation + storage
+│       └── resources/
+│           └── application.properties
 │
-└── frontend/                    # React client (Create React App)
+└── frontend/                    # React + WebCrypto client
     ├── public/
-    │   ├── index.html
-    │   └── icons / manifest, etc.
     ├── src/
-    │   ├── App.js               # Root React component
-    │   ├── AppStreamerViewer.jsx# Host/Viewer UI and flow
-    │   ├── VideoStreamer.jsx    # Video + WebRTC/WebSocket plumbing
-    │   ├── config.js            # API base URLs, constants, helpers
-    │   └── index.js             # React entry point
+    │   ├── App.js
+    │   ├── AppStreamerViewer.jsx
+    │   ├── VideoStreamer.jsx
+    │   ├── config.js            # Backend URL
+    │   └── index.js
     ├── package.json
     └── package-lock.json
 ```
 
 ---
 
-## 🛠 Requirements
+# Requirements
 
 You will need:
 
 - **Node.js + npm**
-- **Java JDK 17+**  
-  Example (Windows, via winget):
-
-  ```powershell
-  winget install --id Microsoft.OpenJDK.17 -e
-  ```
-
-- **Maven** (if not already installed)
+- **Java JDK 17+**
+- **Maven**
 - **Git**
+
+Example JDK install (Windows):
+
+```powershell
+winget install --id Microsoft.OpenJDK.17 -e
+```
+
+Example Maven install:
+
+```powershell
+winget install Maven
+```
 
 ---
 
-## 🚀 Running the System
+# Running the Project
 
-### 1️⃣ Start the Java AES Key Server (Backend)
+## 1️⃣ Start the Java Backend (Spring Boot)
 
-Open a terminal in the **repo root** and run:
+Open a terminal:
 
-```bash
-cd backend
+```powershell
+cd secure-streaming/backend
 mvn clean spring-boot:run
 ```
 
-If the build succeeds, you should see logs similar to:
+Expected output:
 
-```text
-Started SecureStreamingApplication in X.Y seconds
+```
+Started Secure_Stream in X seconds
+Tomcat started on port(s): 8084 (http)
 ```
 
-The backend will be available at:
+Backend is now running at:
 
-```text
-http://localhost:8081
+```
+http://localhost:8084
 ```
 
-(If the port is changed in `application.properties`, update it here and in `config.js`.)
-
-Leave this terminal running.
+Leave this terminal open.
 
 ---
 
-### 2️⃣ Start the React Frontend (Create React App)
+## 2️⃣ Start the React Frontend
 
-Open a **second** terminal in the repo root:
+Open a new terminal:
 
-```bash
-cd frontend
-npm install      # only needed the first time
+```powershell
+cd secure-streaming/frontend
+npm install     # first time only
 npm start
 ```
 
-Create React App will open the frontend at:
+Frontend will open at:
 
-```text
+```
 http://localhost:3000/
 ```
 
-If it doesn’t auto-open, you can manually visit that URL in your browser.
-
-Leave this running as well.
+Leave this running too.
 
 ---
 
-### 3️⃣ (Future Work) WebSocket Relay
+# Frontend Config Update (Important)
 
-Architecturally, the system is designed to support a dedicated WebSocket relay (Node.js or C++) that:
+Make sure your React app points to the correct backend port  
+(**8084**, not 8081 or 8080).
 
-- Accepts **only encrypted frames / messages** from the frontend  
-- Broadcasts ciphertext to viewers in the same session  
-- Never sees decrypted content  
+Inside:
 
-Once this relay is implemented and added to the repo, the typical command will look like:
-
-```bash
-node ws-relay.js
-# or: ./ws-relay   (for a compiled C++ version)
+```
+frontend/src/config.js
 ```
 
-At that point, the frontend’s WebSocket URL (configured in `config.js`) will point to:
+Set:
 
-```text
-ws://localhost:<relay-port>/<path>
+```js
+export const API_BASE = "http://localhost:8084";
+```
+
+If using a WebSocket path, update that too:
+
+```js
+export const WS_BASE = "ws://localhost:8084";
 ```
 
 ---
 
-## 🧪 How to Use the App
+# Using the App
 
-### HOST FLOW
+## HOST FLOW
 
-1. Open `http://localhost:3000/`  
-2. Log in / identify yourself  
-3. Select **Host (Streamer)**  
-4. Enter a **Session ID** (e.g., `cis-demo-1`)  
-5. Click **“Host: Get Key from Backend”**  
-6. The frontend calls `POST /api/session` on the backend  
-7. The AES-256-GCM key is returned, imported into WebCrypto, and logged in the event log (Base64 only, never plaintext key bytes)
+1. Open **http://localhost:3000/**
+2. Select **Host (Streamer)**
+3. Enter a **Session ID** (e.g., `cis-demo-1`)
+4. Click **“Host: Get Key from Backend”**
+5. The backend generates or returns an AES-256-GCM session key (Base64)
+6. Key is imported into WebCrypto and shown in the log
 
-Now the host is ready to send encrypted chat or stream metadata.
+## VIEWER FLOW
 
-### VIEWER FLOW
+1. Open **a second browser window**
+2. Select **Viewer**
+3. Enter the **same Session ID**
+4. Click **“Viewer: Join & Load Key”**
+5. Viewer receives the same AES key and loads it into WebCrypto
 
-1. Open a **second browser window** or a second machine  
-2. Navigate to `http://localhost:3000/`  
-3. Select **Viewer**  
-4. Enter the **same Session ID** used by the host (e.g., `cis-demo-1`)  
-5. Click **“Viewer: Join & Load Key”**  
-6. The frontend calls `POST /api/join` on the backend  
-7. Viewer receives the same AES key (Base64), imports it into WebCrypto, and logs the event
+Now both clients share the same session key.
 
-At this point, both Host and Viewer share the same AES-256-GCM key and can encrypt/decrypt messages.
+## Sending Messages
 
-### Encrypted Chat / Messages
-
-- User types a message on Host or Viewer  
-- Browser uses the shared AES-256-GCM key to **encrypt** the payload  
-- Ciphertext (plus IV and auth tag) is sent to the backend/relay  
-- The recipient uses the same key to **decrypt** the message locally  
-- At no point does the backend/relay see the plaintext message
+- User types a message
+- Browser encrypts text via AES-GCM
+- Ciphertext is sent
+- Receiver decrypts with the shared key
+- Backend never sees plaintext
 
 ---
 
-## 🧪 Optional: Test Backend API with PowerShell (No Browser)
+# Optional: Test Backend API (No Browser)
 
-These examples assume the backend is running on `http://localhost:8081`.
-
-### Create or Get a Session Key (Host)
+### Host Creates/Fetches Session Key
 
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:8081/api/session" `
+Invoke-WebRequest -Uri "http://localhost:8084/api/session" `
   -Method POST `
   -Headers @{ "Content-Type" = "application/json" } `
   -Body '{"sessionId":"demo"}'
 ```
 
-### Join Session and Fetch Key (Viewer)
+### Viewer Joins Session
 
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:8081/api/join" `
+Invoke-WebRequest -Uri "http://localhost:8084/api/join" `
   -Method POST `
   -Headers @{ "Content-Type" = "application/json" } `
   -Body '{"sessionId":"demo"}'
 ```
-
-Each response should include an `aesKeyB64` field representing the Base64-encoded AES key for that session.
