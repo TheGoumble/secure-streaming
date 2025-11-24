@@ -22,7 +22,7 @@ The core idea:
 - Integrated event log for crypto/network steps  
 
 ### Backend (Spring Boot AES Key Server)
-- Runs on **http://localhost:8084**
+- Runs on **http://localhost:8080**
 - Generates per-session AES keys and stores them in memory  
 - REST endpoints (names may vary slightly):
   - `POST /api/session` — Host creates/loads AES key  
@@ -111,8 +111,20 @@ cd secure-streaming
 ```
 
 ---
+## Project Configuration
+Ensure `backend/src/resources/application.properties` contains
+```bash
+server.port=8080
+# Make sure they match
+```
+& Ensure `frontend/src/config.js` contains:
+```js
+export const API_BASE = "http://localhost:8080";
+// They must match
+```
 
 ## Running the Backend (Spring Boot on port 8084)
+
 ```powershell
 cd backend
 mvn clean spring-boot:run
@@ -121,12 +133,12 @@ mvn clean spring-boot:run
 Expected output:
 ```
 :: Spring Boot :: (v3.x.x)
-Tomcat started on port(s): 8084
+Tomcat started on port(s): 8080
 ```
 
 Backend is now live at:
 ```
-http://localhost:8084
+http://localhost:8080
 ```
 
 Leave this terminal open.
@@ -134,6 +146,12 @@ Leave this terminal open.
 ---
 
 ## Running the Frontend (React on port 3000)
+make sure /frontend/src/config.js
+```bash
+export const BACKEND_PORT = "8080";
+# MAKE SURE IT MATCHES WITH FRONTEND
+```
+
 Open a second terminal:
 ```powershell
 cd frontend
@@ -147,14 +165,6 @@ http://localhost:3000
 ```
 
 Leave this running.
-
----
-
-## Frontend Configuration
-Ensure `frontend/src/config.js` contains:
-```js
-export const API_BASE = "http://localhost:8084";
-```
 
 ---
 
@@ -181,7 +191,7 @@ Both clients share the same AES-256-GCM session key.
 
 ### Create Host Session
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:8084/api/session" `
+Invoke-WebRequest -Uri "http://localhost:8080/api/session" `
   -Method POST `
   -Headers @{ "Content-Type" = "application/json" } `
   -Body '{"sessionId":"demo"}'
@@ -189,7 +199,7 @@ Invoke-WebRequest -Uri "http://localhost:8084/api/session" `
 
 ### Viewer Joins Session
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:8084/api/join" `
+Invoke-WebRequest -Uri "http://localhost:8080/api/join" `
   -Method POST `
   -Headers @{ "Content-Type" = "application/json" } `
   -Body '{"sessionId":"demo"}'
@@ -205,11 +215,11 @@ Add Maven to PATH and restart PowerShell.
 ### Frontend cannot reach backend
 Ensure:
 - Backend is running  
-- Correct port (8084)  
+- Correct port (8080)  
 - `config.js` points to backend  
 
 ### Port collision
-Close the app using port **3000** or **8084**, or update your port in the configuration.
+Close the app using port **3000** or **8080**, or update your port in the configuration.
 
 ---
 
