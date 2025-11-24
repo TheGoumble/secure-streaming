@@ -1,47 +1,35 @@
 # Secure Streaming Platform — CIS 4634 Final Project
-
-This project is a secure streaming prototype for **CIS 4634**.  
-It demonstrates a **hybrid cryptographic architecture** combining:
-
+This project is a secure streaming prototype built for **CIS 4634**. It demonstrates a **hybrid cryptographic architecture** combining:
 - **React Frontend (Create React App)**
 - **Java Spring Boot AES Key Server**
-- **AES-256-GCM encryption/decryption in the browser (WebCrypto)**
+- **AES-256-GCM encryption/decryption via WebCrypto**
 
 The core idea:
-
-**The backend manages AES session keys.  
-The browser encrypts and decrypts all sensitive data.  
-The server never processes plaintext video or chat messages.**
+**The backend manages AES session keys. The browser encrypts and decrypts all sensitive data. The server never sees plaintext video/chat content.**
 
 ---
 
-# Features
+## Features
 
-## Frontend (React + WebCrypto)
-
+### Frontend (React + WebCrypto)
 - Login screen  
-- Host or Viewer role selection  
+- Host or Viewer selection  
 - Create or join a Session ID  
-- Fetch AES-256-GCM key from backend  
+- Request AES-256-GCM key from backend  
 - Import AES key into WebCrypto  
-- Encrypt messages locally before sending  
-- Decrypt messages locally when receiving  
-- Event log showing each crypto step  
+- Encrypt outgoing messages locally  
+- Decrypt incoming messages locally  
+- Integrated event log for crypto/network steps  
 
-## Backend (Java Spring Boot AES Key Server)
-
-- Runs at: **http://localhost:8084**
-- Manages per-session AES-256-GCM keys
-- Exposes REST endpoints:
-  - `POST /api/session` → Create or fetch session key (Host)
-  - `POST /api/join` → Retrieve existing session key (Viewer)
-- Returns keys in Base64 (`aesKeyB64`)
-- Stores keys in memory only
-- No plaintext video/chat content ever touches the backend
-
-### Backend configuration (`application.properties`):
-
-```
+### Backend (Spring Boot AES Key Server)
+- Runs on **http://localhost:8084**
+- Generates per-session AES keys and stores them in memory  
+- REST endpoints (names may vary slightly):
+  - `POST /api/session` — Host creates/loads AES key  
+  - `POST /api/join` — Viewer loads same key  
+- Keys returned as Base64 (`aesKeyB64`)
+- Backend configuration (`application.properties`):
+```properties
 server.port=8084
 spring.application.name=Secure_Stream
 spring.websocket.messages.max-size=2097152
@@ -50,7 +38,7 @@ spring.websocket.buffer-size=2097152
 
 ---
 
-# Project Structure
+## Project Structure
 
 ```
 secure-streaming/
@@ -59,14 +47,15 @@ secure-streaming/
 │   ├── pom.xml
 │   └── src/main/
 │       ├── java/
-│       │   ├── config/
-│       │   ├── controller/      # /api/session, /api/join
-│       │   ├── security/
-│       │   └── service/         # AES key generation + storage
+│       │   ├── config/          # CORS / security
+│       │   ├── controller/      # API endpoints
+│       │   ├── edu/             # Main application entry point
+│       │   ├── security/        # Security helpers (if used)
+│       │   └── service/         # AES key/session service
 │       └── resources/
 │           └── application.properties
 │
-└── frontend/                    # React + WebCrypto client
+└── frontend/                    # React (Create React App)
     ├── public/
     ├── src/
     │   ├── App.js
@@ -80,49 +69,62 @@ secure-streaming/
 
 ---
 
-# Requirements
-
-You will need:
-
-- **Node.js + npm**
+## Requirements
+You must have:
 - **Java JDK 17+**
-- **Maven**
+- **Apache Maven 3.9+**
+- **Node.js + npm**
 - **Git**
 
-Example JDK install (Windows):
-
+Verify Java:
 ```powershell
-winget install --id Microsoft.OpenJDK.17 -e
-```
-
-Example Maven install:
-
-```powershell
-winget install Maven
+java -version
 ```
 
 ---
 
-# Running the Project
+## Installing Maven Manually (Windows)
+1. Download the ZIP (working link):  
+   https://archive.apache.org/dist/maven/maven-3/3.9.7/binaries/apache-maven-3.9.7-bin.zip
 
-## 1️⃣ Start the Java Backend (Spring Boot)
+2. Extract to:
+```
+C:\Program Files\apache-maven-3.9.7
+```
 
-Open a terminal:
+3. Add to PATH:
+```
+C:\Program Files\apache-maven-3.9.7\bin
+```
 
+4. Restart PowerShell and verify:
 ```powershell
-cd secure-streaming/backend
+mvn -v
+```
+
+---
+
+## Cloning the Repository
+```powershell
+git clone https://github.com/TheGoumble/secure-streaming.git
+cd secure-streaming
+```
+
+---
+
+## Running the Backend (Spring Boot on port 8084)
+```powershell
+cd backend
 mvn clean spring-boot:run
 ```
 
 Expected output:
-
 ```
-Started Secure_Stream in X seconds
-Tomcat started on port(s): 8084 (http)
+:: Spring Boot :: (v3.x.x)
+Tomcat started on port(s): 8084
 ```
 
-Backend is now running at:
-
+Backend is now live at:
 ```
 http://localhost:8084
 ```
@@ -131,86 +133,53 @@ Leave this terminal open.
 
 ---
 
-## 2️⃣ Start the React Frontend
-
-Open a new terminal:
-
+## Running the Frontend (React on port 3000)
+Open a second terminal:
 ```powershell
-cd secure-streaming/frontend
+cd frontend
 npm install     # first time only
 npm start
 ```
 
-Frontend will open at:
-
+The frontend opens automatically at:
 ```
-http://localhost:3000/
+http://localhost:3000
 ```
 
-Leave this running too.
+Leave this running.
 
 ---
 
-# Frontend Config Update (Important)
-
-Make sure your React app points to the correct backend port  
-(**8084**, not 8081 or 8080).
-
-Inside:
-
-```
-frontend/src/config.js
-```
-
-Set:
-
+## Frontend Configuration
+Ensure `frontend/src/config.js` contains:
 ```js
 export const API_BASE = "http://localhost:8084";
 ```
 
-If using a WebSocket path, update that too:
-
-```js
-export const WS_BASE = "ws://localhost:8084";
-```
-
 ---
 
-# Using the App
+## Using the Application
 
-## HOST FLOW
+### Host Flow
+1. Open `http://localhost:3000`
+2. Choose **Host**
+3. Enter a Session ID
+4. Click **Host: Get Key**
+5. AES key loads and event log updates
 
-1. Open **http://localhost:3000/**
-2. Select **Host (Streamer)**
-3. Enter a **Session ID** (e.g., `cis-demo-1`)
-4. Click **“Host: Get Key from Backend”**
-5. The backend generates or returns an AES-256-GCM session key (Base64)
-6. Key is imported into WebCrypto and shown in the log
-
-## VIEWER FLOW
-
-1. Open **a second browser window**
-2. Select **Viewer**
+### Viewer Flow
+1. Open another browser window
+2. Choose **Viewer**
 3. Enter the **same Session ID**
-4. Click **“Viewer: Join & Load Key”**
-5. Viewer receives the same AES key and loads it into WebCrypto
+4. Click **Join & Load Key**
 
-Now both clients share the same session key.
-
-## Sending Messages
-
-- User types a message
-- Browser encrypts text via AES-GCM
-- Ciphertext is sent
-- Receiver decrypts with the shared key
-- Backend never sees plaintext
+Both clients share the same AES-256-GCM session key.
 
 ---
 
-# Optional: Test Backend API (No Browser)
+## Testing Backend Without Browser
 
-### Host Creates/Fetches Session Key
-
+### Create Host Session
 ```powershell
 Invoke-WebRequest -Uri "http://localhost:8084/api/session" `
   -Method POST `
@@ -219,10 +188,35 @@ Invoke-WebRequest -Uri "http://localhost:8084/api/session" `
 ```
 
 ### Viewer Joins Session
-
 ```powershell
 Invoke-WebRequest -Uri "http://localhost:8084/api/join" `
   -Method POST `
   -Headers @{ "Content-Type" = "application/json" } `
   -Body '{"sessionId":"demo"}'
 ```
+
+---
+
+## Troubleshooting
+
+### `mvn` not recognized
+Add Maven to PATH and restart PowerShell.
+
+### Frontend cannot reach backend
+Ensure:
+- Backend is running  
+- Correct port (8084)  
+- `config.js` points to backend  
+
+### Port collision
+Close the app using port **3000** or **8084**, or update your port in the configuration.
+
+---
+
+## Summary
+This system demonstrates:
+- Secure, browser-side AES-256-GCM encryption  
+- Spring Boot backend for AES key distribution  
+- React frontend for client-side crypto  
+- Backend never handles plaintext  
+- Fully end-to-end encrypted communication for streaming/chat use cases
