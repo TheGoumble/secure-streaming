@@ -82,13 +82,14 @@ const VideoStreamer = ({ username }) => {
                 wsRef.current.onerror = (error) => {
                     setStatus('WebSocket Error. Check backend console.');
                     console.error("WebSocket error:", error);
-                    stopStream();
-                };
+                    // stopStream(); // TEMP: comment out while debugging
+        };
 
                 wsRef.current.onclose = () => {
                     setStatus('Stream disconnected.');
-                    stopStream();
+                    // stopStream(); // TEMP: comment out while debugging
                 };
+
             };
         } catch (err) {
             setStatus(`Error accessing camera: ${err.message}`);
