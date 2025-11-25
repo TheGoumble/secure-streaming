@@ -63,12 +63,12 @@ const AppStreamerViewer = () => {
                 type="text"
                 placeholder="Enter Streamer's Username (e.g., Alice)"
                 value={targetStreamer}
-                onChange={(e) => setTargetStreamer(e.target.value)}
+                onChange={(e) => setTargetStreamer(e.target.value.trim())}
                 style={{ padding: '8px', marginBottom: '15px' }}
             />
             <button 
-                onClick={() => setTargetStreamer(targetStreamer.trim())}
-                disabled={!targetStreamer.trim()}
+                onClick={() => {/* Join is automatic via input change */}}
+                disabled={!targetStreamer}
                 style={{ padding: '8px 15px', backgroundColor: '#6c757d', color: 'white', border: 'none', cursor: 'pointer' }}
             >
                 Join Stream
@@ -77,14 +77,19 @@ const AppStreamerViewer = () => {
             {targetStreamer && (
                 <div style={{ marginTop: '20px' }}>
                     <h3>Live Feed: {targetStreamer}</h3>
+                    <p style={{ fontSize: '0.9em', color: '#666' }}>
+                        Stream URL: {`${HTTP_BASE_URL}/view/${targetStreamer}`}
+                    </p>
                     {/* The browser handles the MJPEG stream from the server */}
                     <img 
                         src={`${HTTP_BASE_URL}/view/${targetStreamer}`} 
                         alt={`Live Stream from ${targetStreamer}`}
-                        style={{ width: '640px', height: '480px', border: '2px solid #007bff' }}
+                        style={{ width: '640px', height: '480px', border: '2px solid #007bff', backgroundColor: '#000' }}
                         onError={(e) => { 
+                            console.error('Stream load failed for:', targetStreamer);
                             e.target.onerror = null; 
-                            e.target.src = 'https://via.placeholder.com/640x480?text=Stream+Offline'; 
+                            e.target.style.backgroundColor = '#333';
+                            e.target.alt = 'Stream Offline - Check if streamer is broadcasting';
                         }}
                     />
                 </div>
