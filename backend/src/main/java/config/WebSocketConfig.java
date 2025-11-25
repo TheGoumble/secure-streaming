@@ -30,11 +30,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
         ChatWebSocketHandler chatWebSocketHandler =
                 applicationContext.getBean(ChatWebSocketHandler.class);
 
-        // Register video streaming WebSocket
+        // Register video streaming WebSocket, allowing all origins
         registry.addHandler(videoStreamHandler, "/stream")
                 .setAllowedOriginPatterns("*");
 
-        // Register chat WebSocket
+        // Register chat WebSocket, allowing all origins
         registry.addHandler(chatWebSocketHandler, "/chat")
                 .setAllowedOriginPatterns("*");
     }
@@ -44,7 +44,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         ServletServerContainerFactoryBean container =
                 new ServletServerContainerFactoryBean();
 
-        // Increase text & binary buffer sizes (2MB)
+        // Increase text & binary buffer sizes (2MB) for potential frame size
         container.setMaxTextMessageBufferSize(2 * 1024 * 1024);
         container.setMaxBinaryMessageBufferSize(2 * 1024 * 1024);
 

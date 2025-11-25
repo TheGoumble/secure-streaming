@@ -3,40 +3,45 @@ package security;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.springframework.stereotype.Component;
 
+@Component
 public class AESUtil {
 
     private static final String ALGORITHM = "AES";
-    // NOTE: This must match the key used in the React client's placeholder
-    private static final String PLACEHOLDER_KEY = "0123456789abcdef0123456789abcdef"; 
     private static final String ENCRYPTION_PREFIX = "AES_ENC_PREFIX::";
 
-    private final SecretKeySpec secretKey;
-
-    public AESUtil() {
-        this.secretKey = new SecretKeySpec(PLACEHOLDER_KEY.getBytes(), ALGORITHM);
-    }
+    // Pattern to match the prefix and the 8-character placeholder, capturing the Base64 data
+    private static final Pattern ENCRYPTED_MESSAGE_PATTERN
+            = Pattern.compile("^" + ENCRYPTION_PREFIX.replace("::", "::") + ".{8}::(.*)$");
 
     /**
-     * Decrypts the frame data received from the client.
+     * Decrypts an encrypted message string using the provided AES key.
+     * Assumes ECB mode with PKCS5/PKCS7 padding, matching the client-side encryption.
+     * * @param encryptedMessage The message string starting with AES_ENC_PREFIX::...::Base64Data
+     * @param secretKey The SecretKeySpec object retrieved from the registry
+     * @return The decrypted raw byte array (JPEG frame data)
+     * @throws Exception If decryption fails or message format is incorrect
      */
-    public byte[] decrypt(String encryptedMessage) throws Exception {
+    public byte[] decrypt(String encryptedMessage, SecretKeySpec secretKey) throws Exception {
         if (!encryptedMessage.startsWith(ENCRYPTION_PREFIX)) {
-             throw new IllegalArgumentException("Message missing AES encryption prefix.");
+            throw new IllegalArgumentException("Message missing AES encryption prefix.");
         }
-        
-        String base64Data = encryptedMessage.substring(ENCRYPTION_PREFIX.length());
 
-        // 1. Decode the Base64 string into raw encrypted bytes
+        Matcher matcher = ENCRYPTED_MESSAGE_PATTERN.matcher(encryptedMessage);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Message format is corrupted or missing the key prefix.");
+        }
+
+        String base64Data = matcher.group(1);
         byte[] encryptedBytes = Base64.getDecoder().decode(base64Data);
 
-        // --- REPLACE THE NEXT LINE WITH YOUR ACTUAL AES DECRYPTION ---
-        // Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding"); 
-        // cipher.init(Cipher.DECRYPT_MODE, secretKey);
-        // byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
-        // return decryptedBytes; 
-        
-        // TEMPORARY: Return the decoded bytes for the proof-of-concept
-        return encryptedBytes; 
+        // AES/ECB/PKCS5Padding is equivalent to AES/ECB/PKCS7Padding used by the CryptoJS client
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+
+        return cipher.doFinal(encryptedBytes);
     }
 }

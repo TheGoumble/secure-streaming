@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Simple chat WebSocket handler.
  * All clients with the same roomId share messages.
- * URL format: ws://localhost:8086/chat?roomId=alice&username=bob
+ * URL format: ws://localhost:8080/chat?roomId=alice&username=bob
  */
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {

@@ -7,3 +7,6 @@ export const HTTP_BASE_URL = `http://${BACKEND_HOST}:${BACKEND_PORT}`;
 
 // WebSocket URL for the Streamer's connection (e.g., ws://localhost:8080)
 export const WS_BASE_URL = `ws://${BACKEND_HOST}:${BACKEND_PORT}`;
+
+
+export const ENCRYPTION_PREFIX = "AES_ENC_PREFIX::";

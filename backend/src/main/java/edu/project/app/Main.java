@@ -5,8 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- *
- * @author Dev
+ * Main entry point for the Secure Video Streamer Spring Boot Application.
  */
 @SpringBootApplication
 @ComponentScan(basePackages = {"controller", "config", "security", "service"})
