@@ -11,6 +11,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.crypto.spec.SecretKeySpec; 
 import java.io.IOException;
 
+/**
+ * Handles WebSocket connections for encrypted video streaming.
+ * Receives encrypted frames from streamers, decrypts using session keys,
+ * and forwards to StreamManager for viewer distribution.
+ */
 @Component
 public class VideoStreamHandler extends TextWebSocketHandler {
 
@@ -18,7 +23,6 @@ public class VideoStreamHandler extends TextWebSocketHandler {
     private final AESUtil aesUtil; 
     private final SessionKeyRegistry keyRegistry; 
 
-    // Constructor: Takes dependencies via Spring injection
     public VideoStreamHandler(StreamManager streamManager, AESUtil aesUtil, SessionKeyRegistry keyRegistry) {
         this.streamManager = streamManager;
         this.aesUtil = aesUtil; 
@@ -38,10 +42,7 @@ public class VideoStreamHandler extends TextWebSocketHandler {
             return;
         }
 
-        // Store the username (which serves as the sessionId/key)
         session.getAttributes().put("username", username); 
-        
-        // Register the stream immediately so viewers can connect
         streamManager.registerStream(username);
         
         System.out.println("New Stream Established: " + username + " (ID: " + session.getId() + ")");
@@ -49,7 +50,6 @@ public class VideoStreamHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
-        // The 'username' is the sessionId used to register the key
         String sessionIdFromWs = (String) session.getAttributes().get("username");
 
         if (sessionIdFromWs == null) {
@@ -58,7 +58,6 @@ public class VideoStreamHandler extends TextWebSocketHandler {
             return;
         }
 
-        // 1. Get the session-specific key
         SecretKeySpec keyForSession = keyRegistry.getKey(sessionIdFromWs); 
         
         if (keyForSession == null) {
@@ -69,11 +68,7 @@ public class VideoStreamHandler extends TextWebSocketHandler {
 
         try {
             String encryptedFrameString = message.getPayload();
-            
-            // 2. Decrypt the frame using the session-specific key
             byte[] decryptedFrameBytes = aesUtil.decrypt(encryptedFrameString, keyForSession); 
-            
-            // 3. Update the latest frame in the manager for viewers
             streamManager.updateFrame(sessionIdFromWs, decryptedFrameBytes); 
             
             // System.out.printf("Received and Decrypted Frame (%d bytes) from %s%n", decryptedFrameBytes.length, sessionIdFromWs);

@@ -1,36 +1,47 @@
 # Secure Streaming Platform — CIS 4634 Final Project
-This project is a secure streaming prototype built for **CIS 4634**. It demonstrates a **hybrid cryptographic architecture** combining:
-- **React Frontend (Create React App)**
-- **Java Spring Boot AES Key Server**
-- **AES-256-GCM encryption/decryption via WebCrypto**
 
-The core idea:
-**The backend manages AES session keys. The browser encrypts and decrypts all sensitive data. The server never sees plaintext video/chat content.**
+This project is a secure video streaming platform built for **CIS 4634**. It demonstrates:
+- **React Frontend** with real-time video streaming
+- **Java Spring Boot Backend** with WebSocket support
+- **Per-session AES-256 encryption** using Web Crypto API
+- **Real-time chat** functionality
+
+The core architecture:
+**The frontend generates unique AES-256 keys per session. Video frames are encrypted client-side before transmission. The backend decrypts frames using session-specific keys and streams to viewers via MJPEG.**
 
 ---
 
 ## Features
 
-### Frontend (React + WebCrypto)
-- Login screen  
-- Host or Viewer selection  
-- Create or join a Session ID  
-- Request AES-256-GCM key from backend  
-- Import AES key into WebCrypto  
-- Encrypt outgoing messages locally  
-- Decrypt incoming messages locally  
-- Integrated event log for crypto/network steps  
+### Frontend (React)
+- Role selection: **Streamer** or **Viewer**
+- **Streamer Mode:**
+  - Generate unique AES-256 session key using Web Crypto API
+  - Register key with backend
+  - Capture webcam video
+  - Encrypt frames using AES/ECB/PKCS7Padding (CryptoJS)
+  - Stream encrypted frames via WebSocket
+  - Real-time chat with viewers
+- **Viewer Mode:**
+  - View live MJPEG stream from any active streamer
+  - Join chat room by streamer username
+  - Real-time message synchronization
 
-### Backend (Spring Boot AES Key Server)
+### Backend (Spring Boot)
 - Runs on **http://localhost:8080**
-- Generates per-session AES keys and stores them in memory  
-- REST endpoints (names may vary slightly):
-  - `POST /api/session` — Host creates/loads AES key  
-  - `POST /api/join` — Viewer loads same key  
-- Keys returned as Base64 (`aesKeyB64`)
+- Session key management (per-streamer AES-256 keys)
+- WebSocket endpoints:
+  - `/stream` — Encrypted video frame receiver
+  - `/chat` — Real-time chat messaging
+- REST endpoints:
+  - `POST /api/session` — Register streamer's AES key
+  - `GET /api/session/{sessionId}/key` — Retrieve key (demo only)
+  - `GET /view/{username}` — MJPEG stream for viewers
+- Frame decryption using AES/ECB/PKCS5Padding
+- Multi-viewer support with frame broadcasting
 - Backend configuration (`application.properties`):
 ```properties
-server.port=8084
+server.port=8080
 spring.application.name=Secure_Stream
 spring.websocket.messages.max-size=2097152
 spring.websocket.buffer-size=2097152
@@ -43,25 +54,39 @@ spring.websocket.buffer-size=2097152
 ```
 secure-streaming/
 │
-├── backend/                     # Spring Boot AES Key Server
+├── backend/                     # Spring Boot Backend
 │   ├── pom.xml
 │   └── src/main/
 │       ├── java/
-│       │   ├── config/          # CORS / security
-│       │   ├── controller/      # API endpoints
-│       │   ├── edu/             # Main application entry point
-│       │   ├── security/        # Security helpers (if used)
-│       │   └── service/         # AES key/session service
+│       │   ├── config/
+│       │   │   └── WebSocketConfig.java        # WebSocket configuration
+│       │   ├── controller/
+│       │   │   ├── ChatWebSocketHandler.java   # Chat WebSocket handler
+│       │   │   ├── SessionController.java      # AES key registration API
+│       │   │   ├── StreamViewerController.java # MJPEG stream endpoint
+│       │   │   └── VideoStreamHandler.java     # Video WebSocket handler
+│       │   ├── edu/project/app/
+│       │   │   └── Main.java                   # Application entry point
+│       │   ├── security/
+│       │   │   ├── AESUtil.java                # AES decryption utility
+│       │   │   └── SessionKeyRegistry.java     # Per-session key storage
+│       │   └── service/
+│       │       └── StreamManager.java          # Stream frame management
 │       └── resources/
 │           └── application.properties
 │
-└── frontend/                    # React (Create React App)
+└── frontend/                    # React Frontend
     ├── public/
     ├── src/
     │   ├── App.js
-    │   ├── AppStreamerViewer.jsx
-    │   ├── VideoStreamer.jsx
-    │   ├── config.js            # Backend URL
+    │   ├── AppLayout.css
+    │   ├── AppStreamerViewer.jsx       # Main app component
+    │   ├── ChatContainer.jsx           # Chat WebSocket container
+    │   ├── ChatPanel.jsx               # Chat UI component
+    │   ├── ChatPanel.css
+    │   ├── CryptoUtils.js              # AES encryption utilities
+    │   ├── VideoStreamer.jsx           # Video streaming component
+    │   ├── config.js                   # Backend URLs & constants
     │   └── index.js
     ├── package.json
     └── package-lock.json
@@ -112,18 +137,30 @@ cd secure-streaming
 
 ---
 ## Project Configuration
-Ensure `backend/src/resources/application.properties` contains
-```bash
+
+### Backend Configuration
+Ensure `backend/src/main/resources/application.properties` contains:
+```properties
 server.port=8080
-# Make sure they match
-```
-& Ensure `frontend/src/config.js` contains:
-```js
-export const API_BASE = "http://localhost:8080";
-// They must match
+spring.application.name=Secure_Stream
+spring.websocket.messages.max-size=2097152
+spring.websocket.buffer-size=2097152
 ```
 
-## Running the Backend (Spring Boot on port 8084)
+### Frontend Configuration
+Ensure `frontend/src/config.js` contains:
+```javascript
+export const BACKEND_HOST = "localhost";
+export const BACKEND_PORT = "8080";
+export const HTTP_BASE_URL = `http://${BACKEND_HOST}:${BACKEND_PORT}`;
+export const WS_BASE_URL = `ws://${BACKEND_HOST}:${BACKEND_PORT}`;
+```
+
+**Important:** Backend and frontend ports must match!
+
+---
+
+## Running the Backend (Spring Boot on port 8080)
 
 ```powershell
 cd backend
@@ -132,7 +169,7 @@ mvn clean spring-boot:run
 
 Expected output:
 ```
-:: Spring Boot :: (v3.x.x)
+:: Spring Boot :: (v3.2.0)
 Tomcat started on port(s): 8080
 ```
 
@@ -141,16 +178,15 @@ Backend is now live at:
 http://localhost:8080
 ```
 
+WebSocket endpoints:
+- `ws://localhost:8080/stream` — Video streaming
+- `ws://localhost:8080/chat` — Chat messaging
+
 Leave this terminal open.
 
 ---
 
 ## Running the Frontend (React on port 3000)
-make sure /frontend/src/config.js
-```bash
-export const BACKEND_PORT = "8080";
-# MAKE SURE IT MATCHES WITH FRONTEND
-```
 
 Open a second terminal:
 ```powershell
@@ -170,20 +206,27 @@ Leave this running.
 
 ## Using the Application
 
-### Host Flow
+### Streamer Flow
 1. Open `http://localhost:3000`
-2. Choose **Host**
-3. Enter a Session ID
-4. Click **Host: Get Key**
-5. AES key loads and event log updates
+2. Enter a unique username (e.g., "Bob")
+3. Click **Be a Streamer**
+4. Click **Start Streaming**
+   - Browser will request camera permission
+   - AES-256 key is automatically generated and registered
+   - Video frames are encrypted and sent to backend
+   - You'll see "🔴 LIVE" when streaming
+5. Use the chat panel to communicate with viewers
 
 ### Viewer Flow
-1. Open another browser window
-2. Choose **Viewer**
-3. Enter the **same Session ID**
-4. Click **Join & Load Key**
+1. Open another browser window/tab at `http://localhost:3000`
+2. Enter your username (e.g., "Bob")
+3. Click **Be a Viewer**
+4. Enter the streamer's username (e.g., "Rick")
+5. Click **Join Stream**
+   - Live video feed appears automatically
+   - Join the chat room to send messages
 
-Both clients share the same AES-256-GCM session key.
+Multiple viewers can watch the same stream simultaneously.
 
 ---
 
@@ -223,10 +266,40 @@ Close the app using port **3000** or **8080**, or update your port in the config
 
 ---
 
-## Summary
-This system demonstrates:
-- Secure, browser-side AES-256-GCM encryption  
-- Spring Boot backend for AES key distribution  
-- React frontend for client-side crypto  
-- Backend never handles plaintext  
-- Fully end-to-end encrypted communication for streaming/chat use cases
+## Architecture Summary
+
+### Security Features
+- **Per-session AES-256 keys**: Each streaming session uses a unique encryption key
+- **Client-side encryption**: Video frames encrypted in browser using Web Crypto API
+- **Backend decryption**: Server decrypts frames using session-specific keys
+- **AES/ECB/PKCS7**: Symmetric encryption matching CryptoJS ↔ Java cipher compatibility
+- **WebSocket security**: Encrypted frame transmission over WebSocket protocol
+
+### Key Flow
+1. **Frontend** generates 256-bit AES key using `crypto.subtle.generateKey()`
+2. **Key Registration** via POST to `/api/session` with Latin-1 encoded key string
+3. **Backend** stores key in `SessionKeyRegistry` with ISO-8859-1 encoding
+4. **Encryption** happens client-side before WebSocket transmission
+5. **Decryption** happens server-side using registered session key
+6. **Viewers** receive decrypted MJPEG stream via HTTP endpoint
+
+### Technology Stack
+- **Frontend**: React, CryptoJS, Web Crypto API, WebSocket
+- **Backend**: Spring Boot 3.2.0, Java 17, WebSocket, Jakarta Servlet
+- **Encryption**: AES-256-ECB with PKCS5/PKCS7 padding
+- **Streaming**: MJPEG over HTTP, encrypted frames via WebSocket
+- **Chat**: WebSocket-based real-time messaging with room support
+
+### Known Limitations (Educational Project)
+**This is a demonstration project for CIS 4634. NOT production-ready:**
+- Keys transmitted over HTTP (needs HTTPS in production)
+- No authentication on key retrieval endpoint
+- ECB mode used for simplicity (CBC/GCM preferred in production)
+- Session keys stored in memory only
+
+**For production use, implement:**
+- TLS/HTTPS for all communications
+- Proper authentication and authorization
+- Diffie-Hellman key exchange (X25519)
+- AES-GCM mode for authenticated encryption
+- Persistent key storage with access controls

@@ -20,14 +20,11 @@ public class SessionKeyRegistry {
      * @param aesKeyString The raw byte string of the AES key.
      */
     public void registerKey(String sessionId, String aesKeyString) {
-        // Create the SecretKeySpec from the raw key bytes string
-        // IMPORTANT: Use ISO-8859-1 (Latin-1) encoding to preserve byte values 0-255
         try {
             SecretKeySpec spec = new SecretKeySpec(aesKeyString.getBytes("ISO-8859-1"), ALGO);
             keys.put(sessionId, spec);
             System.out.println("Registered key for session: " + sessionId);
         } catch (java.io.UnsupportedEncodingException e) {
-            // This should never happen as ISO-8859-1 is always supported
             throw new RuntimeException("Failed to encode AES key", e);
         }
     }

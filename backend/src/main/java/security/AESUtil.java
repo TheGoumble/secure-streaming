@@ -7,13 +7,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
+/**
+ * Utility class for AES decryption of video frames.
+ * Handles frames encrypted with AES/ECB/PKCS7 padding from CryptoJS.
+ */
 @Component
 public class AESUtil {
 
     private static final String ALGORITHM = "AES";
     private static final String ENCRYPTION_PREFIX = "AES_ENC_PREFIX::";
 
-    // Pattern to match the prefix and the 8-character placeholder, capturing the Base64 data
     private static final Pattern ENCRYPTED_MESSAGE_PATTERN
             = Pattern.compile("^" + ENCRYPTION_PREFIX.replace("::", "::") + ".{8}::(.*)$");
 

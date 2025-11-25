@@ -1,7 +1,10 @@
-// src/ChatPanel.jsx
 import React, { useState } from "react";
 import "./ChatPanel.css";
 
+/**
+ * Chat UI component displaying messages and input field.
+ * Formats messages based on sender (System, You, or other users).
+ */
 const ChatPanel = ({ username, messages, onSend }) => {
   const [input, setInput] = useState("");
 

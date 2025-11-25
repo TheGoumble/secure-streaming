@@ -10,6 +10,10 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 
+/**
+ * Configures WebSocket endpoints for video streaming and chat functionality.
+ * Sets buffer sizes to 2MB to accommodate encrypted video frames.
+ */
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
@@ -22,19 +26,15 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-
-        // Retrieve beans from Spring context
         VideoStreamHandler videoStreamHandler =
                 applicationContext.getBean(VideoStreamHandler.class);
 
         ChatWebSocketHandler chatWebSocketHandler =
                 applicationContext.getBean(ChatWebSocketHandler.class);
 
-        // Register video streaming WebSocket, allowing all origins
         registry.addHandler(videoStreamHandler, "/stream")
                 .setAllowedOriginPatterns("*");
 
-        // Register chat WebSocket, allowing all origins
         registry.addHandler(chatWebSocketHandler, "/chat")
                 .setAllowedOriginPatterns("*");
     }

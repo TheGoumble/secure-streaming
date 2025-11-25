@@ -18,11 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
-    // roomId -> set of sessions
     private final Map<String, Set<WebSocketSession>> rooms = new ConcurrentHashMap<>();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        // Validate URI and query parameters
         URI uri = session.getUri();
         if (uri == null) {
             session.close(CloseStatus.BAD_DATA.withReason("Missing URI"));
@@ -35,6 +35,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        // Extract and validate room credentials
         var params = UriComponentsBuilder.fromUriString("?" + query)
                 .build()
                 .getQueryParams();

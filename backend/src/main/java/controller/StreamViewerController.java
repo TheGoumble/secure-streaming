@@ -23,9 +23,16 @@ public class StreamViewerController {
     }
 
     private static final String BOUNDARY = "--frameboundary";
-    // Mime type for Motion JPEG (MJPEG) streaming
     private static final String CONTENT_TYPE = "multipart/x-mixed-replace; boundary=" + BOUNDARY;
 
+    /**
+     * Streams decrypted video to viewers via MJPEG over HTTP.
+     * Continuously sends JPEG frames with multipart boundaries until stream ends.
+     * Frame rate is controlled at ~20 FPS (50ms delay between frames).
+     * 
+     * @param username The streamer's username/session ID
+     * @param response HTTP response stream for MJPEG output
+     */
     @GetMapping("/view/{username}")
     public void viewStream(@PathVariable String username, HttpServletResponse response) {
         
@@ -39,9 +46,7 @@ public class StreamViewerController {
 
         System.out.println("Stream is active for: " + username + ", starting MJPEG stream...");
         
-        // 1. Set MJPEG Streaming Headers
-        // Note: Cross-Origin is not required here because the browser requests this image stream
-        // directly from the backend, not via the fetch API.
+        // Configure MJPEG streaming headers with no-cache policy
         response.setContentType(CONTENT_TYPE);
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
         response.setHeader(HttpHeaders.PRAGMA, "no-cache");
@@ -54,10 +59,8 @@ public class StreamViewerController {
                 byte[] frame = streamManager.getLatestFrame(username);
                 
                 if (frame != null && frame.length > 0) {
-                    // Reset empty frame counter
                     emptyFrameCount = 0;
                     
-                    // 2. Write MJPEG Frame Components
                     outputStream.write(("\r\n" + BOUNDARY + "\r\n").getBytes());
                     outputStream.write(("Content-Type: image/jpeg\r\n").getBytes());
                     outputStream.write(("Content-Length: " + frame.length + "\r\n\r\n").getBytes());
@@ -69,25 +72,20 @@ public class StreamViewerController {
                         System.out.println("Sent " + frameCount + " frames to viewer for: " + username);
                     }
                 } else {
-                    // Stream is registered but no frames yet - wait for first frame
                     emptyFrameCount++;
                     if (emptyFrameCount == 1) {
                         System.out.println("Waiting for first frame from: " + username);
                     }
                 }
 
-                // 3. Control frame rate (e.g., 20 FPS = 50ms delay)
                 Thread.sleep(50); 
             }
             System.out.println("Stream ended for: " + username + " after " + frameCount + " frames");
         } catch (IOException e) {
-            // Connection closed by client (viewer navigated away)
             System.out.println("Viewer connection closed for: " + username + " - " + e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.out.println("Stream interrupted for: " + username);
         }
-        
-        // Stream finished when the loop exits
     }
 }

@@ -1,4 +1,3 @@
-// src/ChatContainer.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { WS_BASE_URL } from "./config";
 import ChatPanel from "./ChatPanel";
@@ -12,8 +11,8 @@ const ChatContainer = ({ roomId, username }) => {
   const [messages, setMessages] = useState([]);
   const wsRef = useRef(null);
 
-  // Open WebSocket when roomId + username are available
   useEffect(() => {
+    // Prevent duplicate connections on re-render
     if (!roomId || !username) return;
 
     const url = `${WS_BASE_URL}/chat?roomId=${encodeURIComponent(
@@ -25,7 +24,6 @@ const ChatContainer = ({ roomId, username }) => {
 
     ws.onopen = () => {
       console.log("Chat WebSocket connected:", url);
-      // Optional: add a local system message
       setMessages((prev) => [
         ...prev,
         {
@@ -58,8 +56,7 @@ const ChatContainer = ({ roomId, username }) => {
     };
   }, [roomId, username]);
 
-  // Called by ChatPanel when user presses Send
-const handleSend = (msg) => {
+  const handleSend = (msg) => {
   const ws = wsRef.current;
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(msg));

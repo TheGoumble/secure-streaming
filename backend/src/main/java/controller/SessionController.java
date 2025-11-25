@@ -16,14 +16,12 @@ public class SessionController {
         this.keyRegistry = keyRegistry;
     }
 
-    // Host registers the key
     @PostMapping
     public ResponseEntity<Void> createSession(@RequestBody SessionKeyRequest req) {
         keyRegistry.registerKey(req.getSessionId(), req.getAesKey());
         return ResponseEntity.ok().build();
     }
 
-    // Viewer can fetch the key (for demo/MVP; in real life you’d secure this)
     @GetMapping("/{sessionId}/key")
     public ResponseEntity<SessionKeyResponse> getSessionKey(@PathVariable String sessionId) {
         var keySpec = keyRegistry.getKey(sessionId);
@@ -40,7 +38,7 @@ public class SessionController {
         }
     }
 
-    // DTO for Key Registration Request
+    /** Data Transfer Object for session key registration requests */
     public static class SessionKeyRequest {
         private String sessionId;
         private String aesKey;
@@ -51,7 +49,7 @@ public class SessionController {
         public void setAesKey(String aesKey) { this.aesKey = aesKey; }
     }
 
-    // DTO for Key Retrieval Response
+    /** Data Transfer Object for session key retrieval responses */
     public static class SessionKeyResponse {
         private String sessionId;
         private String aesKey;
@@ -61,7 +59,6 @@ public class SessionController {
         }
         public String getSessionId() { return sessionId; }
         public String getAesKey() { return aesKey; }
-        // Setters for Jackson deserialization (though not strictly needed for this response)
         public void setSessionId(String sessionId) { this.sessionId = sessionId; }
         public void setAesKey(String aesKey) { this.aesKey = aesKey; }
     }

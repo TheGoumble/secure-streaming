@@ -12,7 +12,6 @@ import java.util.Arrays;
 @Service
 public class StreamManager {
 
-    // Key: Username, Value: The byte array of the latest decrypted JPEG frame
     private final Map<String, byte[]> activeStreams = new ConcurrentHashMap<>();
 
     /**
@@ -20,7 +19,6 @@ public class StreamManager {
      * @param username The ID of the stream.
      */
     public void registerStream(String username) {
-        // Initialize with empty array to mark stream as active
         activeStreams.put(username, new byte[0]);
         System.out.println("Stream registered: " + username);
     }
