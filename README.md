@@ -159,6 +159,21 @@ export const WS_BASE_URL = `ws://${BACKEND_HOST}:${BACKEND_PORT}`;
 **Important:** Backend and frontend ports must match!
 
 ---
+### Quick Demo
+
+Make sure you are within the **root directory** of the project (`secure-streaming\`).
+
+**Required Shell:** PowerShell
+
+```powershell
+Start-Process powershell -ArgumentList "cd frontend; npm i; npm start" ; cd backend ; mvn spring-boot:run
+```
+
+This will make the current terminal run the backend code
+while simoltaniously opening another terminal and executing the frontend code
+Both terminals must be open to allow for Demo
+
+---
 
 ## Running the Backend (Spring Boot on port 8080)
 
